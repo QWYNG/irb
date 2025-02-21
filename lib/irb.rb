@@ -146,7 +146,7 @@ module IRB
       input
     end
 
-    def run(conf = IRB.conf)
+    def run(conf = IRB.conf, pre_cmds: nil, do_cmds: nil)
       in_nested_session = !!conf[:MAIN_CONTEXT]
       conf[:IRB_RC].call(context) if conf[:IRB_RC]
       prev_context = conf[:MAIN_CONTEXT]
@@ -170,6 +170,7 @@ module IRB
         end
 
         forced_exit = catch(:IRB_EXIT) do
+          @context.evaluate(parse_input(code), 0). if command?(pre_cmds)
           eval_input
         end
       ensure
@@ -703,7 +704,7 @@ class Binding
   #     Cooked potato: true
   #
   # See IRB for more information.
-  def irb(show_code: true)
+  def irb(show_code: true, **kw)
     # Setup IRB with the current file's path and no command line arguments
     IRB.setup(source_location[0], argv: []) unless IRB.initialized?
     # Create a new workspace using the current binding
@@ -729,7 +730,7 @@ class Binding
       # workspace
       binding_irb = IRB::Irb.new(workspace, from_binding: true)
       binding_irb.context.irb_path = irb_path
-      binding_irb.run(IRB.conf)
+      binding_irb.run(IRB.conf, pre_cmds: kw[:pre_cmds], do_cmds: kw[:do_cmds])
       binding_irb.debug_break
     end
   end
